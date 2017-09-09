@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.contrib import auth
 
 class CounselorManager(BaseUserManager):
@@ -50,7 +50,7 @@ class CounselorManager(BaseUserManager):
 
         return admin
 
-class Counselor(AbstractBaseUser):
+class Counselor(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=40, default='NOME')
     last_name = models.CharField(max_length=40, default='SOBRENOME')
 
@@ -64,6 +64,7 @@ class Counselor(AbstractBaseUser):
 
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
 
     objects = CounselorManager()
 
@@ -84,13 +85,11 @@ class Counselor(AbstractBaseUser):
     def make_appointment(self):
         pass
 
+    def get_short_name(self):
+        return self.username
+
     def has_perms(self, perm_list, obj=None):
-        for perm in perm_list:
-            if not self.has_perm(perm, obj):
-                return False
-            return True
+        return self.is_superuser
 
     def has_module_perms(self, app_label):
-        if self.is_active and self.is_superuser:
-            return True
-        return _user_has_module_perms(self, app_label)
+        return self.is_superuser
