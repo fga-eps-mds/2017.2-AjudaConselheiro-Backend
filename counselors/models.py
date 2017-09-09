@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib import auth
 
 class CounselorManager(BaseUserManager):
     def create_user(self, email, password=None, **kwargs):
@@ -31,11 +32,11 @@ class CounselorManager(BaseUserManager):
             last_name = kwargs.get('last_name'),
             phone = kwargs.get('phone'),
             county = kwargs.get('county'),
-            cpf = kwargs.get('county')
+            cpf = kwargs.get('cpf')
         )
 
         counselor.set_password(password)
-        counselor.save()
+        counselor.save(using=self._db)
 
         return counselor
 
@@ -43,7 +44,9 @@ class CounselorManager(BaseUserManager):
         admin = self.create_user(email, password, **kwargs)
 
         admin.is_admin = True
-        admin.save()
+        admin.is_staff = True
+        admin.is_superuser = True
+        admin.save(using=self._db)
 
         return admin
 
@@ -58,6 +61,9 @@ class Counselor(AbstractBaseUser):
     cpf = models.CharField(max_length=11)
 
     full_name = str(first_name) + " " + str(last_name)
+
+    is_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
 
     objects = CounselorManager()
 
@@ -77,3 +83,14 @@ class Counselor(AbstractBaseUser):
 
     def make_appointment(self):
         pass
+
+    def has_perms(self, perm_list, obj=None):
+        for perm in perm_list:
+            if not self.has_perm(perm, obj):
+                return False
+            return True
+
+    def has_module_perms(self, app_label):
+        if self.is_active and self.is_superuser:
+            return True
+        return _user_has_module_perms(self, app_label)
