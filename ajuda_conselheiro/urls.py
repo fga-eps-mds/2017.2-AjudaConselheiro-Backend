@@ -15,9 +15,15 @@ Including another URLconf
 """
 from django.conf.urls import include, url
 from django.contrib import admin
+from rest_framework_nested import routers
+from counselors.views import CounselorViewSet
 
+router = routers.SimpleRouter()
+router.register(r'counselors', CounselorViewSet)
+
+#API endpoint include
 urlpatterns = [
     url(r'^presidents/', include('presidents.urls')),
-    url(r'^counselors/', include('counselors.urls')),
+    url(r'^api/', include(router.urls)),
     url(r'^admin/', admin.site.urls),
 ]
