@@ -1,5 +1,6 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib import auth
 
 class CounselorManager(BaseUserManager):
     def create_user(self, email, password=None, **kwargs):
@@ -31,23 +32,25 @@ class CounselorManager(BaseUserManager):
             last_name = kwargs.get('last_name'),
             phone = kwargs.get('phone'),
             county = kwargs.get('county'),
-            cpf = kwargs.get('county')
+            cpf = kwargs.get('cpf')
         )
 
         counselor.set_password(password)
-        counselor.save()
+        counselor.save(using=self._db)
 
         return counselor
 
     def create_superuser(self, email, password, **kwargs):
-        counselor = self.create_user(email, password, **kwargs)
+        admin = self.create_user(email, password, **kwargs)
 
-        counselor.is_admin = True
-        counselor.save()
+        admin.is_admin = True
+        admin.is_staff = True
+        admin.is_superuser = True
+        admin.save(using=self._db)
 
-        return counselor
+        return admin
 
-class Counselor(AbstractBaseUser):
+class Counselor(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=40, default='NOME')
     last_name = models.CharField(max_length=40, default='SOBRENOME')
 
@@ -57,11 +60,13 @@ class Counselor(AbstractBaseUser):
     county = models.CharField(max_length=150)
     cpf = models.CharField(max_length=11)
 
-    tagline = str(first_name) + str(last_name)
     full_name = str(first_name) + " " + str(last_name)
 
-    # criar classe CounselorManager
-    # objects = CounselorManager()
+    is_admin = models.BooleanField(default=False)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = CounselorManager()
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['first_name',
@@ -79,3 +84,12 @@ class Counselor(AbstractBaseUser):
 
     def make_appointment(self):
         pass
+
+    def get_short_name(self):
+        return self.username
+
+    def has_perms(self, perm_list, obj=None):
+        return self.is_superuser
+
+    def has_module_perms(self, app_label):
+        return self.is_superuser
